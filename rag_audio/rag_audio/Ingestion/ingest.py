@@ -5,23 +5,9 @@ import mutagen
 import hashlib
 import subprocess
 from mongoengine import connect, Document, StringField, IntField
+from ..data_schemas.schema_song import AudioMetadata
 
 connect(db="metadata_audio", host="mongodb://localhost:27017/Audio_rag")
-class AudioMetadata(Document):
-    id = StringField(primary_key=True)
-    title = StringField(required=True)
-    artist = StringField(required=True)
-    album = StringField(required=True)
-    year = IntField(required=True)
-    bit_path = StringField(required=True)
-    genre = StringField(required=True)
-    duration = IntField(required=True)
-    sample_rate = IntField(required=True)
-    channels = IntField(required=True)
-    bit_depth = IntField(required=True)
-    codec = StringField(required=True)
-    normalized_path = StringField(required=True)
-    normalized_hash = StringField(required=True)
 
 class Audio_loader:
 
@@ -105,6 +91,7 @@ class Audio_loader:
             "normalized_hash": str(nhss)}
         audio_metadata = AudioMetadata(**metadata)
         audio_metadata.save()
+        return str(hss)
 
     def audio_loader(self, audio_name):
         path = self.get_audio_path(audio_name)
