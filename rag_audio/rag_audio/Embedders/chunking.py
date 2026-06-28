@@ -59,5 +59,10 @@ class load_chunks:
                 chunk_number += 1
 
             stem.save() 
-a=load_chunks(chunk_size=5,overlap=2)
-a.create_chunks(song_id="f9b585355cea187f8bc969d1d58109df25f998eb9d50b0a28348aff336ef0c857643a21f545a2603d5fa91d66ae616299ed6a09618e7d8b5e5229d1017411408")
+
+chunk=ChunkMetaData.objects(id="6a41295d3fd95648e5396d5d").first()            
+print(type(chunk.id))
+print(chunk.id)
+
+print(type(str(chunk.id)))
+print(str(chunk.id))
