@@ -1,61 +1,38 @@
-# ============================================================
-# RAG Project Requirements
-# LangChain + Hugging Face Stack
-# ============================================================
 
-# --- Core LangChain ---
 langchain>=0.3.0
 langchain-core>=0.3.0
 langchain-community>=0.3.0
 langchain-huggingface>=0.1.0
 
-# --- Hugging Face ---
 transformers>=4.44.0
 huggingface-hub>=0.24.0
-sentence-transformers>=3.0.0      # Embedding models
+sentence-transformers>=3.0.0     
 tokenizers>=0.19.0
-accelerate>=0.33.0                # Model loading & inference acceleration
-datasets>=2.20.0                  # Optional: loading HF datasets
+accelerate>=0.33.0               
+datasets>=2.20.0                 
 
-# --- Vector Stores (pick one or more) ---
-faiss-cpu>=1.8.0                  # FAISS (CPU) — lightweight, local
-# faiss-gpu>=1.7.2                # FAISS (GPU) — uncomment if using CUDA
+faiss-cpu>=1.8.0                
 chromadb>=0.5.0                   # ChromaDB — persistent local vector store
-# pinecone-client>=4.0.0          # Pinecone — cloud vector store
-# qdrant-client>=1.10.0           # Qdrant — self-hosted or cloud
 
-# --- Document Loaders & Parsing ---
-pypdf>=4.3.0                      # PDF loading
-unstructured>=0.15.0              # Multi-format loader (PDF, DOCX, HTML, etc.)
-python-docx>=1.1.0                # Word document support
-beautifulsoup4>=4.12.0            # HTML/web scraping
-lxml>=5.2.0                       # XML & HTML parser
+pypdf>=4.3.0                     
+unstructured>=0.15.0             
+python-docx>=1.1.0                
+beautifulsoup4>=4.12.0           
+lxml>=5.2.0                      
 
-# --- Text Splitting ---
-# Included in langchain-text-splitters (pulled by langchain)
 langchain-text-splitters>=0.3.0
 
-# --- Embeddings & Inference ---
-torch>=2.3.0                      # PyTorch backend for HF models
-# torch with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121
-einops>=0.8.0                     # Required by some HF models
-bitsandbytes>=0.43.0              # 4-bit / 8-bit quantization
+torch>=2.3.0                   
+einops>=0.8.0                    
+bitsandbytes>=0.43.0             
 
-# --- API & Environment ---
-python-dotenv>=1.0.0              # Load .env files
+python-dotenv>=1.0.0              
 requests>=2.32.0
 
-# --- Optional: LLM Inference Servers ---
-# llama-cpp-python>=0.2.0         # Run GGUF models locally
-# ctransformers>=0.2.27           # Alternative local inference
 
-# --- Optional: Reranking ---
-# FlagEmbedding>=1.2.0            # BGE reranker models
 
-# --- Evaluation ---
-ragas>=0.1.0                      # RAG evaluation framework
 
-# --- Utilities ---
+ragas>=0.1.0                     
 tqdm>=4.66.0
 numpy>=1.26.0
 pandas>=2.2.0
