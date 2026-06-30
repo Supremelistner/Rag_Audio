@@ -1,13 +1,15 @@
 from pathlib import Path
-import magic
+import mimetypes
 import uuid
 import mutagen
 import hashlib
 import subprocess
-from mongoengine import connect, Document, StringField, IntField
 from ..data_schemas.schema_song import AudioMetadata
 
-connect(db="metadata_audio", host="mongodb://localhost:27017/Audio_rag")
+try:
+    import magic
+except ImportError:
+    magic = None
 
 class Audio_loader:
 
@@ -23,9 +25,9 @@ class Audio_loader:
         if not path.is_file():
             raise FileNotFoundError(f"No file found at {path}")
 
-        # 2. Check the MIME type using python-magic
-        mime_type = magic.from_file(str(path), mime=True)
-        if not mime_type.startswith("audio/"):
+        # 2. Check the MIME type using python-magic, with a Windows-friendly fallback.
+        mime_type = magic.from_file(str(path), mime=True) if magic else mimetypes.guess_type(path.name)[0]
+        if not mime_type or not mime_type.startswith("audio/"):
             raise ValueError(f"File is not a valid audio format. Detected: {mime_type}")
 
     def decoder(self, path):
@@ -89,8 +91,7 @@ class Audio_loader:
             "codec": audio_file.mime[0] if audio_file.mime else "Unknown",
             "normalized_path": str(normalized_path),
             "normalized_hash": str(nhss)}
-        audio_metadata = AudioMetadata(**metadata)
-        audio_metadata.save()
+        AudioMetadata.create_document(metadata)
         return str(hss)
 
     def audio_loader(self, audio_name):
@@ -100,7 +101,7 @@ class Audio_loader:
         hss=self.get_hash(bit_path)
         normalized_path = self.normalise_audio(bit_path)
         nhss=self.get_hash(normalized_path)
-        self.save_metadata(bit_path,path,hss,normalized_path,nhss)
+        return self.save_metadata(bit_path,path,hss,normalized_path,nhss)
     
 def main():
     audio_name = "test.mp3"  # Replace with your actual audio file name

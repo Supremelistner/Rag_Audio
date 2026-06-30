@@ -1,16 +1,9 @@
-from mongoengine import connect,Document,StringField,IntField
 import subprocess, os
+import sys
 import mutagen
 from pathlib import Path
 from ..data_schemas.schema_stem import stemData
 from ..data_schemas.schema_song import AudioMetadata
-
-
-
-connect(db="metadata_stem", host="mongodb://localhost:27017/Audio_rag")
-
-
-
 
 class stem_loader:
 
@@ -21,7 +14,7 @@ class stem_loader:
         using the htdemucs_6s model.
         """
         # Convert paths to string and ensure the file exists
-        input_wav=AudioMetadata.objects(id=song_id).first().normalized_path
+        input_wav=AudioMetadata.get_by_id(song_id).normalized_path
         input_wav_path = input_wav
         output_dir = Path(__file__).parent.parent.parent/"data"/"stem_data"
         
@@ -65,6 +58,7 @@ class stem_loader:
             print(f"An error occurred while running Demucs: {e}")
         return output_dir
 
+
     def create_metadata(self,stem_path:Path,song_id):
         for files in stem_path.iterdir():
             if files.is_file():
@@ -77,8 +71,8 @@ class stem_loader:
                     "sample_rate": audio_file.info.sample_rate,
                     "channels": audio_file.info.channels,
                 }
-                stem=stemData(**metadata).save()
-                song=AudioMetadata.objects(id=song_id).update_one(push__stem_data=stem)
+                stem=stemData.create_document(metadata)
+                AudioMetadata.add_stem(song_id, stem)
 
-a= stem_loader()
-a.create_metadata(stem_path=Path("data/stem_data/htdemucs_6s/normalized_0e70f59a-5b0f-4f11-8793-6f7a826efd20"),song_id="f9b585355cea187f8bc969d1d58109df25f998eb9d50b0a28348aff336ef0c857643a21f545a2603d5fa91d66ae616299ed6a09618e7d8b5e5229d1017411408")
+a=stem_loader()
+a.create_metadata(song_id="6523f1f4cf4ec9880d9f809d9e43e589b75481d28eb52afd3d08312a2c531fff487f2481447d65b9d206f09d732e8962577a5b05f891b9e07ddb02f2f767b971",stem_path=Path("C:\\Users\\MANISH\\Assignment\\Sabudh\\Side projects\\rag_audio\\data\\stem_data\\htdemucs_6s\\normalized_0e70f59a-5b0f-4f11-8793-6f7a826efd20"))
