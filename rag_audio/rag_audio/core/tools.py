@@ -1,6 +1,6 @@
 from pathlib import Path
 from uuid import uuid4
-from typing import Annotated,dict
+from typing import Annotated
 import librosa
 import soundfile as sf
 import torch
@@ -8,6 +8,8 @@ import torchaudio
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 from langchain_huggingface import HuggingFacePipeline
+from transformers import pipeline
+
 
 from ..data_schemas.Execplan import ExecutionPlan
 from ..data_schemas.schema_chunks import ChunkMetaData
@@ -35,8 +37,15 @@ WORKFLOW_MAP = {
 ]}
 
 
-Planner=HuggingFacePipeline(repo_id="Qwen/Qwen2.5-1.5B-Instruct",task="text-generation")
-model=Planner.with_structured_output(ExecutionPlan)
+pipe = pipeline(
+    "text-generation",
+    model="Qwen/Qwen2.5-1.5B-Instruct",
+    max_new_tokens=512,
+    temperature=0.1,
+)
+
+Planner = HuggingFacePipeline(pipeline=pipe)
+
 
 
 class toollist:
@@ -126,15 +135,27 @@ class toollist:
             If information is missing,
             add it to required_inputs.
             Always return a valid ExecutionPlan.
-            Return ONLY the ExecutionPlan.
-            User_Query: {command}\n\nHistory: {history_context}\n\nWORKFLOW_MAP: {WORKFLOW_MAP}"""
+            Return ONLY the ExecutionPlan and validate it against the ExecutionPlan schema.
+            User_Query: {command}\n\nHistory: {history_context}\n\nWORKFLOW_MAP: {WORKFLOW_MAP}\n\nExecutionPlan Schema: {ExecutionPlan.model_json_schema()}\n\nAvailable Tools: {tool_manifest}"""
         
-        response=model.invoke(prompt)
-        return {"execution_plan":response}
+        response = Planner.invoke(prompt)
+
+        # Extract JSON if the model adds extra text
+        start = response.find("{")
+        end = response.rfind("}") + 1
+
+        if start == -1 or end == 0:
+            raise ValueError(f"Model did not return JSON:\n{response}")
+
+        json_text = response[start:end]
+
+        plan = ExecutionPlan.model_validate_json(json_text)
+
+        return {"execution_plan": plan}
         
 
 
-    @tool("chunk_retriever")
+    @tool("chunk_retriever",description="Responsible for retrieving the required audio chunks from the database.")
     def retrieval_agent(raw_state: Annotated[dict, InjectedState()]):
         songs = raw_state.get("songs_metadata", [])
         plan = raw_state.get("execution_plan")
@@ -149,7 +170,7 @@ class toollist:
         return {"retrieved_chunks": required_chunks}
 
 
-    @tool("similarity_search")
+    @tool("similarity_search", description="Responsible for searching similar songs based on audio features.")
     def similarity_search_agent(raw_state: Annotated[dict, InjectedState()]):
         plan = raw_state.get("execution_plan")
         if not plan:
@@ -196,7 +217,7 @@ class toollist:
 
 
     
-    @tool("metadata_retriever")
+    @tool("metadata_retriever", description="Responsible for retrieving metadata for the specified songs.")
     def metadata_agent(raw_state: Annotated[dict, InjectedState()]):
         plan=raw_state["execution_plan"]
         songs=plan.song_name
@@ -214,7 +235,7 @@ class toollist:
 
     
     
-    @tool("audio_constructor")
+    @tool("audio_constructor",description="Responsible for constructing the final audio using retrieved and modified assets.")
     def construct_audio_agent(raw_state: dict):
         plan = raw_state.get("execution_plan")
         songs = raw_state.get("songs_metadata", [])
@@ -388,7 +409,7 @@ class toollist:
     
     
     
-    @tool("voice_modifier")
+    @tool("voice_modifier",description="Responsible for modifying the vocal stem of a song based on specified parameters.")
     def voice_modifier_agent(raw_state: dict):
         plan = raw_state.get("execution_plan")
         retrieved_chunks = raw_state.get("retrieved_chunks", {})

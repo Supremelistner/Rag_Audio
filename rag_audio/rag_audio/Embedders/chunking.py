@@ -1,11 +1,12 @@
 from mongoengine import connect,Document,StringField,IntField
-import mutagen
+import librosa 
+import torch
 from pathlib import Path
 from ..data_schemas.schema_stem import stemData
 from ..data_schemas.schema_chunks import ChunkMetaData
 from ..data_schemas.schema_song import AudioMetadata
-import torchaudio
 import os
+import soundfile as sf
 connect(db="metadata_chunks",host="mongodb://localhost:27017/Audio_rag")
 
 class load_chunks:
@@ -18,7 +19,16 @@ class load_chunks:
         stem_data = audio_file.stem_data
 
         for stem in stem_data:
-            waveform, sr = torchaudio.load(stem.stem_path)
+            audio, sr = librosa.load(
+                stem.stem_path,
+                sr=None,
+                mono=False,
+            )
+
+            waveform = torch.from_numpy(audio)
+
+            if waveform.ndim == 1:
+                waveform = waveform.unsqueeze(0)
 
             chunk_samples   = int(self.chunk_size * sr)
             overlap_samples = int(self.overlap * sr)
@@ -39,8 +49,8 @@ class load_chunks:
                     / f"chunk_{chunk_number}.wav"
                 )
                 os.makedirs(chunk_path.parent, exist_ok=True)
-                torchaudio.save(str(chunk_path), chunk_waveform, sr)
-
+                audio = chunk_waveform.cpu().numpy().T   # (samples, channels)
+                sf.write(str(chunk_path), audio, sr)
                 chunk_metadata = ChunkMetaData(
                     song_id     = song_id,
                     stem_id     = str(stem.id),

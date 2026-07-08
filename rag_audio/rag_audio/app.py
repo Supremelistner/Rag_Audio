@@ -10,35 +10,19 @@ from rag_audio.data_schemas.schema_song import AudioMetadata
 from rag_audio.embedders.chunking import load_chunks
 from rag_audio.embedders.stem import stem_loader
 from rag_audio.embedders.vector_db import Vector_db
-
+from rag_audio.core.agent import AudioAgent
 
 ROOT_DIR = Path(__file__).parent
 INPUT_DIR = ROOT_DIR / "data" / "input_data"
 GENERATED_DIR = ROOT_DIR / "data" / "generated_audio"
 
 
-def load_audio_agent_class():
-    core_dir = ROOT_DIR / "rag_audio" / "core.py"
-    package_name = "rag_audio.core_py"
-    if package_name not in sys.modules:
-        package = types.ModuleType(package_name)
-        package.__path__ = [str(core_dir)]
-        sys.modules[package_name] = package
 
-    module_name = f"{package_name}.agent"
-    if module_name in sys.modules:
-        return sys.modules[module_name].AudioAgent
-
-    spec = importlib.util.spec_from_file_location(module_name, core_dir / "agent.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module.AudioAgent
 
 
 @st.cache_resource
 def get_agent():
-    return load_audio_agent_class()()
+    return AudioAgent()
 
 
 def save_uploaded_audio(uploaded_file):
