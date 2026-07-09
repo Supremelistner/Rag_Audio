@@ -1,0 +1,58 @@
+[project]
+name = "rag_audio"
+dynamic = ["version"]
+description = "Description for project."
+authors = [
+    {name = "Manish Rana", email = "manishRana01979@gmail.com"}
+]
+requires-python = ">=3.14"
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["ruff", "mypy", "pip-tools", "pre-commit", "pytest", "pytest-cov", "pytest-mock"]
+
+
+[tool.mypy]
+disallow_any_explicit = true
+disallow_any_generics = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+exclude = [".venv/", "docs/"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+addopts = "-v -p no:warnings --cov=rag_audio --cov-branch --cov-report=html --cov-report=xml --doctest-modules --ignore=rag_audio/__main__.py --ignore=docs/"
+
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "D",   # pydocstyle
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "RUF", # ruff
+]
+pydocstyle.convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+]
+
+[build-system]
+requires = ["setuptools>=78", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["rag_audio"]
+
+[tool.setuptools_scm]
