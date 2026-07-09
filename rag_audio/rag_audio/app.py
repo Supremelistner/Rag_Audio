@@ -12,7 +12,7 @@ from rag_audio.embedders.stem import stem_loader
 from rag_audio.embedders.vector_db import Vector_db
 from rag_audio.core.agent import AudioAgent
 
-ROOT_DIR = Path(__file__).parent
+ROOT_DIR = Path(__file__).parent.parent
 INPUT_DIR = ROOT_DIR / "data" / "input_data"
 GENERATED_DIR = ROOT_DIR / "data" / "generated_audio"
 

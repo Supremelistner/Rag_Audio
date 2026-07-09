@@ -33,7 +33,7 @@ class stem_loader:
             "-d", "cpu", 
             input_wav_path
         ]
-
+        final_output_path = None
         try:
             # Execute the process and capture console output in real-time
             process = subprocess.Popen(
@@ -46,17 +46,17 @@ class stem_loader:
             for line in process.stdout:
                 print(line, end="")   
             process.wait()
-            
+        
             if process.returncode == 0:
                 track_name = Path(input_wav_path).stem
-                final_output_path = os.path.join(output_dir, "htdemucs_6s", track_name)
-                print(f"\n Separation complete! Your 6 stems are saved in:\n-> {final_output_path}")
+                final_output_path = output_dir / "htdemucs_6s" / track_name
+                print(f"\n Separation complete! Your 6 stems are saved in:\n-> {str(final_output_path)}")
             else:
                 print(f"\nDemucs failed with exit code: {process.returncode}")
 
         except Exception as e:
             print(f"An error occurred while running Demucs: {e}")
-        return output_dir
+        return final_output_path
 
 
     def create_metadata(self,stem_path:Path,song_id):
@@ -74,5 +74,3 @@ class stem_loader:
                 stem=stemData.create_document(metadata)
                 AudioMetadata.add_stem(song_id, stem)
 
-a=stem_loader()
-a.create_metadata(song_id="6523f1f4cf4ec9880d9f809d9e43e589b75481d28eb52afd3d08312a2c531fff487f2481447d65b9d206f09d732e8962577a5b05f891b9e07ddb02f2f767b971",stem_path=Path("C:\\Users\\MANISH\\Assignment\\Sabudh\\Side projects\\rag_audio\\data\\stem_data\\htdemucs_6s\\normalized_0e70f59a-5b0f-4f11-8793-6f7a826efd20"))

@@ -22,9 +22,15 @@ class AudioMetadata(Document):
     @classmethod
     def create_document(cls, metadata: dict):
         connect_audio_rag()
+
         existing = cls.objects(id=metadata["id"]).first()
+
         if existing:
+            for key, value in metadata.items():
+                setattr(existing, key, value)
+            existing.save()
             return existing
+
         return cls(**metadata).save()
 
     @classmethod

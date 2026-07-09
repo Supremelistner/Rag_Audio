@@ -109,7 +109,3 @@ class Vector_db:
                 "normalized_path": matched_song.normalized_path,
             } if matched_song else None
         return ranked
-print(client.count(
-    collection_name="vocals",
-    exact=True
-))

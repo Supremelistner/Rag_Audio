@@ -56,19 +56,31 @@ class Audio_loader:
                 hasher.update(byte_block)
         return hasher.hexdigest()      
 
-    def normalise_audio(self, bit_path): 
+    def normalise_audio(self, bit_path):
         """Normalizes the audio file to a standard volume level."""
-        normalized_path = bit_path.parent.parent/"normalized" / f"normalized_{bit_path.name}"
+        normalized_path = (
+            bit_path.parent.parent
+            / "normalized"
+            / f"normalized_{bit_path.stem}.wav"
+        )
+        normalized_path.parent.mkdir(parents=True, exist_ok=True)
+
         command = [
-            "ffmpeg",
-            "-y",                  
-            "-i", str(bit_path),   
-            "-filter:a", "loudnorm", 
-            str(normalized_path)    
+            "ffmpeg", "-y",
+            "-i", str(bit_path),
+            "-filter:a", "loudnorm",
+            str(normalized_path),
         ]
-        subprocess.run(command)
+
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode != 0 or not normalized_path.exists():
+            raise RuntimeError(
+                f"ffmpeg normalization failed for {bit_path} "
+                f"(return code {result.returncode}):\n{result.stderr}"
+            )
+
         return normalized_path
-    
     def save_metadata(self,bit_path,audio_path,hss,normalized_path ,nhss):
         audio_file = mutagen.File(str(audio_path), easy=True)
         try:
@@ -91,7 +103,11 @@ class Audio_loader:
             "codec": audio_file.mime[0] if audio_file.mime else "Unknown",
             "normalized_path": str(normalized_path),
             "normalized_hash": str(nhss)}
-        AudioMetadata.create_document(metadata)
+        doc = AudioMetadata.create_document(metadata)
+
+        print("Saved document:", doc)
+        print("Saved id:", doc.id if doc else None)
+
         return str(hss)
 
     def audio_loader(self, audio_name):
@@ -103,10 +119,4 @@ class Audio_loader:
         nhss=self.get_hash(normalized_path)
         return self.save_metadata(bit_path,path,hss,normalized_path,nhss)
     
-def main():
-    audio_name = "test.mp3"  # Replace with your actual audio file name
-    loader = Audio_loader()
-    loader.audio_loader(audio_name)
-    print(f"Audio metadata for {audio_name} has been saved to the database.")
-if __name__ == "__main__":
-    main()
+

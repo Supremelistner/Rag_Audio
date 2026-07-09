@@ -69,5 +69,3 @@ class load_chunks:
                 chunk_number += 1
 
             stem.save() 
-a=load_chunks(10,3)
-a.create_chunks("6523f1f4cf4ec9880d9f809d9e43e589b75481d28eb52afd3d08312a2c531fff487f2481447d65b9d206f09d732e8962577a5b05f891b9e07ddb02f2f767b971")
