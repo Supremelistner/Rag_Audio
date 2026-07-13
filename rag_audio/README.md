@@ -1,116 +1,441 @@
-# Rag Audio
+# RAG Audio
+### Agentic Retrieval-Augmented Audio Editing and Reconstruction Framework
 
-Description for project.
+> A modular AI system that ingests songs, decomposes them into semantic audio assets, indexes them into a vector database, and reconstructs new audio compositions through natural language instructions.
 
-This is a Python application that uses [`pip-tools`][pip-tools] for packaging and
-dependency management. It provides [`pre-commit`][pre-commit] hooks for various linters
-and formatters and automated tests using [`pytest`][pytest] and [GitHub Actions].
-Pre-commit hooks are automatically kept updated with a dedicated GitHub Action, this can
-be removed and replaced with [pre-commit.ci] if using a public repo. The package version
-is dynamically generated from the most recent git tag using
-[`setuptools-scm`][setuptools-scm].
+---
 
-[`pip-tools`][pip-tools] is chosen as a lightweight dependency manager that adheres to
-the [latest standards] using `pyproject.toml`.
+## Overview
 
-It was developed by the [Imperial College Research Software Engineering Team].
+RAG Audio is an experimental framework for intelligent audio editing using Retrieval-Augmented Generation (RAG) principles.
 
-## Usage
+Instead of treating a song as one continuous waveform, the system converts every song into reusable audio assets consisting of:
 
-To get started:
+- Individual stems
+- Temporal audio chunks
+- Semantic embeddings
+- Metadata
+- Vector representations
 
-1. Activate a git repository (required for `pre-commit` and the package versioning with
-`setuptools-scm`):
+These assets are later retrieved and recombined through an AI planning agent capable of executing complex audio editing workflows.
 
-    ```bash
-    git init
-    ```
+The goal is to transform songs into reusable building blocks rather than static recordings.
 
-1. Create and activate a [virtual environment]:
+---
 
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate # with Powershell on Windows: `.venv\Scripts\Activate.ps1`
-    ```
+# Features
 
-1. Install development requirements and the package in editable mode:
+- Audio ingestion pipeline
+- Automatic audio normalization
+- Six-stem source separation using Demucs
+- Temporal chunk generation with overlap
+- Audio embedding generation
+- Qdrant vector search
+- MongoDB metadata storage
+- Agentic workflow planning
+- Natural language audio editing
+- Modular audio reconstruction engine
 
-    ```bash
-    pip install -r dev-requirements.txt
-    pip install -e .
-    ```
+Supported workflows include:
 
-1. Install the pre-commit git hooks:
+- Voice modification
+- Stem replacement
+- Mashups
+- Similarity search
+- Audio reconstruction
 
-    ```bash
-    pre-commit install
-    ```
+---
 
-1. Update the pre-commit hooks
+# System Architecture
 
-    ```bash
-    pre-commit autoupdate
-    ```
+```
+                User Audio
+                     │
+                     ▼
+             Audio Ingestion
+                     │
+                     ▼
+             Audio Normalization
+                     │
+                     ▼
+             Stem Separation
+         (Vocals, Piano, Bass...)
+                     │
+                     ▼
+             Chunk Generation
+                     │
+                     ▼
+             Audio Embeddings
+                     │
+                     ▼
+            Qdrant Vector Store
+                     │
+             MongoDB Metadata
+                     │
+                     ▼
+             AI Planning Agent
+                     │
+                     ▼
+        Asset Retrieval & Construction
+                     │
+                     ▼
+             Generated Audio
+```
 
-1. Run the main app:
+---
 
-    ```bash
-    python -m rag_audio
-    ```
+# Project Structure
 
-1. Run the tests:
+```
+rag_audio/
 
-    ```bash
-    pytest
-    ```
+│
+├── app.py
+│
+├── Ingestion/
+│   └── ingest.py
+│
+├── embedders/
+│   ├── embeds.py
+│   ├── chunking.py
+│   ├── stem.py
+│   └── vector_db.py
+│
+├── core/
+│   ├── agent.py
+│   └── tools.py
+│
+├── data_schemas/
+│   ├── schema_song.py
+│   ├── schema_stem.py
+│   ├── schema_chunks.py
+│   └── ExecPlan.py
+│
+└── data/
+    ├── input_data/
+    ├── processed/
+    ├── normalized/
+    ├── stem_data/
+    ├── chunks/
+    └── generated_audio/
+```
 
-1. Create an initial commit (it's possible there might be some failures in pre-commit):
+---
 
-    ```bash
-    git add .
-    git commit -m "Initial commit"
-    ```
+# Workflow
 
-## Updating Dependencies
+## 1. Audio Ingestion
 
-To add or remove dependencies:
+Responsible for validating and preparing uploaded audio.
 
-1. Edit the `dependencies` variables in the `pyproject.toml` file (aim to keep
-development tools separate from the project requirements).
-1. Update the requirements files:
-    - `pip-compile` for `requirements.txt` - the project requirements.
-    - `pip-compile --extra dev -o dev-requirements.txt` for the development requirements.
-1. Sync the files with your installation (install packages):
-    - `pip-sync *requirements.txt`
+Operations
 
-To upgrade pinned versions, use the `--upgrade` flag with `pip-compile`.
+- Audio validation
+- WAV conversion
+- Sample rate normalization
+- Loudness normalization
+- Metadata extraction
+- SHA hashing
 
-Versions can be restricted from updating within the `pyproject.toml` using standard
-python package version specifiers, i.e. `"black<23"` or `"pip-tools!=6.12.2"`
+Output
 
-## Customising
+- Processed WAV
+- Normalized WAV
+- MongoDB Song Metadata
 
-All configuration can be customised to your preferences. The key places to make changes
-for this are:
+---
 
-- The `pyproject.toml` file, where you can edit:
-    - The build system (change from setuptools to other packaging tools like [Hatch] or
-[flit]).
-    - The python version.
-    - The project dependencies. Extra optional dependencies can be added by adding
-another list under `[project.optional-dependencies]` (i.e. `doc = ["mkdocs"]`).
-    - The `mypy` and `pytest` configurations.
-- The `.pre-commit-config.yaml` for pre-commit settings.
-- The `.github` directory for all the CI configuration.
+## 2. Stem Separation
 
-[pip-tools]: https://pip-tools.readthedocs.io/en/stable/
-[pre-commit]: https://pre-commit.com/
-[pytest]: https://pytest.org/
-[GitHub Actions]: https://github.com/features/actions
-[pre-commit.ci]: https://pre-commit.ci
-[setuptools-scm]: https://setuptools-scm.readthedocs.io/en/latest/
-[latest standards]: https://peps.python.org/pep-0621/
-[Imperial College Research Software Engineering Team]: https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/service-offering/research-software-engineering/
-[virtual environment]: https://docs.python.org/3/library/venv.html
-[Hatch]: https://hatch.pypa.io/
-[flit]: https://flit.pypa.io/
+Uses Facebook Research's Demucs model.
+
+Generated stems
+
+- Vocals
+- Drums
+- Bass
+- Guitar
+- Piano
+- Other
+
+Output
+
+- Six independent audio tracks
+- Stem metadata
+
+---
+
+## 3. Chunk Generation
+
+Each stem is divided into overlapping temporal chunks.
+
+Purpose
+
+- Fine-grained retrieval
+- Partial reconstruction
+- Semantic indexing
+
+Output
+
+```
+Song
+ ├── Vocals
+ │      ├── chunk_001.wav
+ │      ├── chunk_002.wav
+ │      └── ...
+ │
+ ├── Piano
+ └── ...
+```
+
+---
+
+## 4. Audio Embeddings
+
+Each chunk is embedded using pretrained transformer models.
+
+Current models
+
+- WavLM
+- MERT
+
+Output
+
+768-dimensional semantic vectors
+
+---
+
+## 5. Vector Database
+
+Backend
+
+- Qdrant
+
+Collections
+
+```
+vocals
+drums
+bass
+guitar
+piano
+other
+```
+
+Each point stores
+
+- Embedding
+- Song ID
+- Stem ID
+- Chunk ID
+- Timing metadata
+
+---
+
+## 6. Metadata Database
+
+Backend
+
+MongoDB
+
+Collections
+
+- Songs
+- Stems
+- Chunks
+
+Stores
+
+- Audio metadata
+- File locations
+- Relationships
+- Chunk references
+
+---
+
+## 7. Agentic Planning
+
+Natural language requests are converted into structured execution plans.
+
+Example
+
+```
+Replace the piano from Song A
+with the piano from Song B.
+```
+
+↓
+
+Execution Plan
+
+```
+Retrieve Song A
+Retrieve Song B
+Extract Piano Stem
+Replace Piano
+Reconstruct Audio
+```
+
+---
+
+## 8. Audio Constructor
+
+Unlike traditional mixers, the constructor operates on reusable assets.
+
+Capabilities
+
+- Stem replacement
+- Stem blending
+- Melody fusion
+- Weighted reconstruction
+- Voice modification
+- Mashups
+
+This module is designed as an extensible audio constructor rather than a fixed audio mixer.
+
+---
+
+# Streamlit Interface
+
+The application currently provides three primary endpoints.
+
+## Ingest Song
+
+Uploads a song into the retrieval system.
+
+Pipeline
+
+```
+Upload
+
+↓
+
+Normalize
+
+↓
+
+Separate Stems
+
+↓
+
+Chunk
+
+↓
+
+Embed
+
+↓
+
+Store
+```
+
+---
+
+## Stored Songs
+
+Displays indexed songs currently available.
+
+Shows
+
+- Title
+- Artist
+- Duration
+- Song ID
+
+---
+
+## Chatbot Query
+
+Natural language interface.
+
+Example requests
+
+```
+Find songs similar to this recording.
+
+Replace the piano with a violin recording.
+
+Mix the vocals of Song A with the melody of Song B.
+
+Increase vocal pitch.
+
+Generate a mashup using only piano and bass.
+```
+
+---
+
+# Technology Stack
+
+### Backend
+
+- Python
+- Streamlit
+- MongoEngine
+- MongoDB
+
+### AI
+
+- LangGraph
+- LangChain
+- HuggingFace Transformers
+- WavLM
+- MERT
+
+### Audio
+
+- FFmpeg
+- Torchaudio
+- Librosa
+- Demucs
+
+### Vector Database
+
+- Qdrant
+
+---
+
+# Future Improvements
+
+- Diffusion-based audio generation
+- Intelligent stem alignment
+- Beat synchronization
+- BPM detection
+- Key detection
+- Semantic music editing
+- Multi-track timeline editing
+- Plugin architecture
+- Real-time reconstruction
+
+---
+
+# Outcomes
+
+This project demonstrates:
+
+- Retrieval-Augmented Generation for audio
+- Agentic workflow planning
+- Audio source separation
+- Vector similarity search
+- Semantic audio retrieval
+- AI-driven reconstruction
+- Modular audio processing pipelines
+- Production-oriented backend architecture
+
+---
+
+# Copyright & Attribution
+
+© 2026 Manish Rana
+
+This project was developed by **Manish Rana** as part of ongoing research and development in Retrieval-Augmented Audio Processing and Agentic AI systems.
+
+You are welcome to:
+
+- Learn from the code
+- Use portions of the implementation in personal or academic projects
+- Modify and extend the project
+- Reference it in your own work
+
+If you use substantial parts of this project or build upon it, please provide appropriate credit by linking back to this repository or mentioning the original author.
+
+Contributions, suggestions, and improvements are always welcome.
