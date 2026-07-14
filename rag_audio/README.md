@@ -45,44 +45,288 @@ Supported workflows include:
 - Audio reconstruction
 
 ---
+## Architecture
+![alt text](image.png)
 
-# System Architecture
+# Installation
 
-```
-                User Audio
-                     │
-                     ▼
-             Audio Ingestion
-                     │
-                     ▼
-             Audio Normalization
-                     │
-                     ▼
-             Stem Separation
-         (Vocals, Piano, Bass...)
-                     │
-                     ▼
-             Chunk Generation
-                     │
-                     ▼
-             Audio Embeddings
-                     │
-                     ▼
-            Qdrant Vector Store
-                     │
-             MongoDB Metadata
-                     │
-                     ▼
-             AI Planning Agent
-                     │
-                     ▼
-        Asset Retrieval & Construction
-                     │
-                     ▼
-             Generated Audio
+## Prerequisites
+
+Before running the project, ensure the following software is installed:
+
+- Python 3.10+
+- MongoDB Community Server
+- Qdrant
+- FFmpeg (available from command line)
+- Git
+
+---
+
+## Clone the Repository
+
+```bash
+git clone <repository-url>
+cd rag_audio
 ```
 
 ---
+
+## Create Virtual Environment
+
+Windows
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+Linux/macOS
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+---
+
+## Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+If a `requirements.txt` file is not available:
+
+```bash
+pip install -e .
+```
+
+or
+
+```bash
+pip install .
+```
+
+depending on your installation method.
+
+---
+
+## Install FFmpeg
+
+Verify installation:
+
+```bash
+ffmpeg -version
+```
+
+FFmpeg must be available in your system PATH since it is used for:
+
+- Audio decoding
+- Audio normalization
+- Format conversion
+
+---
+
+## Start MongoDB
+
+Ensure MongoDB is running before launching the application.
+
+Default connection:
+
+```
+mongodb://localhost:27017/Audio_rag
+```
+
+---
+
+## Start Qdrant
+
+Default endpoint:
+
+```
+http://localhost:6333
+```
+
+Verify that the server is running before ingesting audio.
+
+---
+
+# Running the Application
+
+Launch the Streamlit interface:
+
+```bash
+streamlit run rag_audio/app.py
+```
+
+or
+
+```bash
+python -m streamlit run rag_audio/app.py
+```
+
+The application will be available at:
+
+```
+http://localhost:8501
+```
+
+---
+
+# Supported Audio Formats
+
+Current ingestion supports formats accepted by FFmpeg, including:
+
+- MP3
+- WAV
+- FLAC
+- OGG
+- M4A
+
+---
+
+# Data Storage
+
+During execution, the following folders are populated automatically:
+
+```
+data/
+
+input_data/
+processed/
+normalized/
+stem_data/
+chunks/
+generated_audio/
+```
+
+MongoDB stores:
+
+- Song metadata
+- Stem metadata
+- Chunk metadata
+
+Qdrant stores:
+
+- Chunk embeddings
+- Retrieval metadata
+
+---
+
+# Streamlit Pages
+
+## 1. Ingest Song
+
+Purpose
+
+Uploads a new song into the retrieval system.
+
+Pipeline
+
+```
+Upload
+↓
+Validation
+↓
+Normalization
+↓
+Stem Separation
+↓
+Chunk Generation
+↓
+Embedding
+↓
+Qdrant Storage
+↓
+MongoDB Metadata
+```
+
+---
+
+## 2. Stored Songs
+
+Displays all songs currently indexed inside MongoDB.
+
+Information displayed
+
+- Song ID
+- Title
+- Artist
+- Duration
+
+---
+
+## 3. Chatbot Query
+
+Natural language interface for retrieval and reconstruction.
+
+Current supported workflows:
+
+- Similarity Search
+- Voice Modification
+- Stem Replacement
+- Mashup Generation
+- Audio Reconstruction
+
+---
+
+# Core Modules
+
+| Module | Responsibility |
+|---------|----------------|
+| `ingest.py` | Audio validation, decoding, normalization, metadata extraction |
+| `stem.py` | Demucs-based six-stem source separation |
+| `chunking.py` | Temporal chunk creation with configurable overlap |
+| `embeds.py` | Audio embedding generation using transformer models |
+| `vector_db.py` | Qdrant indexing and similarity retrieval |
+| `schema_*` | MongoDB document models |
+| `agent.py` | LangGraph-based orchestration |
+| `tools.py` | Retrieval, planning, reconstruction, and editing tools |
+| `app.py` | Streamlit user interface |
+
+---
+
+# Typical Pipeline
+
+```
+Input Audio
+      │
+      ▼
+Audio Validation
+      │
+      ▼
+Audio Decoding
+      │
+      ▼
+Normalization
+      │
+      ▼
+Demucs Separation
+      │
+      ▼
+Stem Metadata
+      │
+      ▼
+Chunk Generation
+      │
+      ▼
+Embedding Generation
+      │
+      ▼
+Qdrant Indexing
+      │
+      ▼
+Natural Language Agent
+      │
+      ▼
+Audio Retrieval
+      │
+      ▼
+Audio Reconstruction
+      │
+      ▼
+Generated Audio
+```
 
 # Project Structure
 
