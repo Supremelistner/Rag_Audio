@@ -1,4 +1,4 @@
-# RAG Audio(Use branch: "master" instead of "main" for the more stable and latest version)
+# RAG Audio
 ### Agentic Retrieval-Augmented Audio Editing and Reconstruction Framework
 
 > A modular AI system that ingests songs, decomposes them into semantic audio assets, indexes them into a vector database, and reconstructs new audio compositions through natural language instructions.
