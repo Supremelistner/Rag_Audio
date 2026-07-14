@@ -1,6 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 from typing import Annotated
+import numpy as np
 import librosa
 import soundfile as sf
 import torch
@@ -42,6 +43,7 @@ pipe = pipeline(
     model="Qwen/Qwen2.5-1.5B-Instruct",
     max_new_tokens=512,
     temperature=0.1,
+    return_full_text=False
 )
 
 Planner = HuggingFacePipeline(pipeline=pipe)
@@ -221,12 +223,11 @@ class toollist:
     def metadata_agent(raw_state: Annotated[dict, InjectedState()]):
         plan=raw_state["execution_plan"]
         songs=plan.song_name
-        audio_data=[]
+        audio_data = []
         for song in songs:
-            audio=AudioMetadata.get_by_title(song)
-            if not audio:
-                raise ValueError(f"Song '{song}' not found in database.")
-            audio_data.append(audio)
+            audio = AudioMetadata.get_by_title(song)
+            if audio:  # Ensures the song was actually found
+                audio_data.append(audio)
         return {"songs_metadata": audio_data}
 
 
@@ -234,8 +235,8 @@ class toollist:
         
 
     
-    
-    @tool("audio_constructor",description="Responsible for constructing the final audio using retrieved and modified assets.")
+        
+    @tool("audio_constructor", description="Responsible for constructing the final audio using retrieved and modified assets.")
     def construct_audio_agent(raw_state: dict):
         plan = raw_state.get("execution_plan")
         songs = raw_state.get("songs_metadata", [])
@@ -299,6 +300,12 @@ class toollist:
                             waveform = torchaudio.functional.resample(waveform, chunk_sr, stem_sr)
                         audio_segments.append(waveform)
                     stem_waveform = torch.cat(audio_segments, dim=1)
+
+                # Normalize to (channels, samples) explicitly so downstream code
+                # never has to guess dimensionality.
+                if stem_waveform.dim() == 1:
+                    stem_waveform = stem_waveform.unsqueeze(0)
+
                 if stem_name not in assets:
                     assets[stem_name] = []
                 assets[stem_name].append(
@@ -322,7 +329,10 @@ class toollist:
                 operation_parameters.update(step.parameters.get("stem_operations", {}).get(stem_name, {}))
                 operation_parameters.update(step.parameters.get("song_operations", {}).get(asset["song_id"], {}))
                 operation_parameters.update(step.parameters.get("song_operations", {}).get(asset["song_title"], {}))
-                audio = asset["waveform"].squeeze(0).detach().cpu().numpy()
+
+                # Keep as (channels, samples) — no squeeze(0)/unsqueeze(0) round-trip.
+                audio = asset["waveform"].detach().cpu().numpy()
+
                 if operation_parameters.get("pitch_shift") is not None:
                     audio = librosa.effects.pitch_shift(
                         audio,
@@ -336,7 +346,8 @@ class toollist:
                     )
                 if operation_parameters.get("gain_db") is not None:
                     audio = audio * (10 ** (float(operation_parameters["gain_db"]) / 20.0))
-                asset["waveform"] = torch.tensor(audio, dtype=asset["waveform"].dtype).unsqueeze(0)
+
+                asset["waveform"] = torch.tensor(audio, dtype=asset["waveform"].dtype)
 
         # align_tracks()
         final_sample_rate = None
@@ -402,14 +413,23 @@ class toollist:
             merged = merged / peak
 
         # export()
-        output_path = output_dir / f"{plan.workflow}_{uuid4().hex}.wav"
-        sf.write(str(output_path), merged.detach().cpu().numpy().T, final_sample_rate or 44100)
-        return {"audio_path": str(output_path)}
+        # merged is (channels, samples) at this point — normalize any stray
+        # extra dims, then transpose to (samples, channels) for soundfile.
+        out = np.squeeze(merged.detach().cpu().numpy())
+        if out.ndim == 1:
+            pass  # mono, write as-is
+        elif out.ndim == 2:
+            out = out.T  # (channels, samples) -> (samples, channels)
+        else:
+            raise ValueError(f"Unexpected audio shape before export: {out.shape}")
 
+        output_path = output_dir / f"{plan.workflow}_{uuid4().hex}.wav"
+        sf.write(str(output_path), out, final_sample_rate or 44100)
+        return {"audio_path": str(output_path)}
     
     
-    
-    @tool("voice_modifier",description="Responsible for modifying the vocal stem of a song based on specified parameters.")
+        
+    @tool("voice_modifier", description="Responsible for modifying the vocal stem of a song based on specified parameters.")
     def voice_modifier_agent(raw_state: dict):
         plan = raw_state.get("execution_plan")
         retrieved_chunks = raw_state.get("retrieved_chunks", {})
@@ -435,6 +455,9 @@ class toollist:
 
         output_dir = Path(step.parameters.get("output_dir", Path("data") / "modified_stems"))
         output_dir.mkdir(parents=True, exist_ok=True)
+
+        all_modified = {}
+
         for song_id, stems in retrieved_chunks.items():
             vocal_chunks = stems.get("vocals")
             if not vocal_chunks:
@@ -449,13 +472,15 @@ class toollist:
                 if chunk_sr != sample_rate:
                     waveform = torchaudio.functional.resample(waveform, chunk_sr, sample_rate)
                 audio_segments.append(waveform)
-            vocal_asset = torch.cat(audio_segments, dim=1)
+            vocal_asset = torch.cat(audio_segments, dim=1)  # (channels, samples)
 
             # modify(...)
             operation_parameters = {}
             operation_parameters.update(step.parameters)
             operation_parameters.update(step.parameters.get("song_operations", {}).get(song_id, {}))
-            modified_audio = vocal_asset.squeeze(0).detach().cpu().numpy()
+
+            modified_audio = vocal_asset.detach().cpu().numpy()  # keep (channels, samples)
+
             if operation_parameters.get("pitch_shift") is not None:
                 modified_audio = librosa.effects.pitch_shift(
                     modified_audio,
@@ -469,21 +494,29 @@ class toollist:
                 )
             if operation_parameters.get("gain_db") is not None:
                 modified_audio = modified_audio * (10 ** (float(operation_parameters["gain_db"]) / 20.0))
-            modified = torch.tensor(modified_audio, dtype=vocal_asset.dtype).unsqueeze(0)
+
+            modified = torch.tensor(modified_audio, dtype=vocal_asset.dtype)  # still (channels, samples)
             peak = modified.abs().max()
             if peak > 1:
                 modified = modified / peak
 
-            output_path = output_dir / f"{song_id}_vocals_{uuid4().hex}.wav"
-            sf.write(str(output_path), modified.detach().cpu().numpy().T, sample_rate)
+            # export() — normalize shape right before writing
+            out = np.squeeze(modified.detach().cpu().numpy())
+            if out.ndim == 1:
+                pass  # mono
+            elif out.ndim == 2:
+                out = out.T  # (channels, samples) -> (samples, channels)
+            else:
+                raise ValueError(f"Unexpected audio shape before export: {out.shape}")
 
-            return {
-                "modified_stems": {
-                    song_id: {
-                        "vocals": {
-                            "output_path": str(output_path),
-                            "sample_rate": sample_rate,
-                        }
-                    }
+            output_path = output_dir / f"{song_id}_vocals_{uuid4().hex}.wav"
+            sf.write(str(output_path), out, sample_rate)
+
+            all_modified[song_id] = {
+                "vocals": {
+                    "output_path": str(output_path),
+                    "sample_rate": sample_rate,
                 }
             }
+
+        return {"modified_stems": all_modified}
