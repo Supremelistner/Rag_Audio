@@ -129,7 +129,7 @@ FFmpeg must be available in your system PATH since it is used for:
 
 ## Start MongoDB
 
-Ensure MongoDB is running before launching the application.
+Ensure MongoDB is installed and  running before launching the application.
 
 Default connection:
 
@@ -140,6 +140,11 @@ mongodb://localhost:27017/Audio_rag
 ---
 
 ## Start Qdrant
+Open terminal rag_audio/data/qdrant
+
+```
+docker compose up -d
+```
 
 Default endpoint:
 
